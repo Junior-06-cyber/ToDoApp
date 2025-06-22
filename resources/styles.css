@@ -106,3 +106,11 @@
 .floating-btn:hover {
     -fx-background-color: linear-gradient(90deg, #007b8a 0%, #00adb5 100%);
 }
+
+.sidebar-user-label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ff9800;
+    -fx-padding: 16 0 16 0;
+    -fx-alignment: center;
+}

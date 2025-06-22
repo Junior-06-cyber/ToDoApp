@@ -19,15 +19,26 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import javafx.scene.Node;
+import javafx.event.ActionEvent;
+import java.util.Optional;
 
 public class Main extends Application {
-    private TaskManager taskManager = new TaskManager();
+    private TaskManager taskManager = new TaskManager(getCurrentUser());
     private VBox taskList = new VBox(10);
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private ListView<Task> listView;
     private ObservableList<Task> observableTasks;
     private String currentFilter = "Inbox";
+    private String currentUser = "Guest";
+
+    private void setCurrentUser(String username) {
+        this.currentUser = username;
+    }
+    private String getCurrentUser() {
+        return this.currentUser;
+    }
 
     @Override
     public void start(Stage primaryStage) {
@@ -55,6 +66,38 @@ public class Main extends Application {
         addSidebarBtn.setMaxWidth(Double.MAX_VALUE);
         addSidebarBtn.setOnAction(e -> showAddTaskDialog());
         sidebar.getChildren().add(0, addSidebarBtn);
+
+        // Username label at the top of the sidebar
+        Label userLabel = new Label("User: " + getCurrentUser());
+        userLabel.getStyleClass().add("sidebar-user-label");
+        sidebar.getChildren().add(0, userLabel);
+
+        // Add Login/Register button to sidebar
+        Button loginBtn = new Button("Login/Register");
+        loginBtn.getStyleClass().add("sidebar-add-btn");
+        loginBtn.setMaxWidth(Double.MAX_VALUE);
+        loginBtn.setOnAction(e -> {
+            UserManager um = new UserManager();
+            if (showLoginDialog(um)) {
+                setCurrentUser(um.getLastLoggedInUser());
+                userLabel.setText("User: " + getCurrentUser());
+                taskManager.setUser(getCurrentUser());
+                updateFilter(currentFilter);
+            }
+        });
+        sidebar.getChildren().add(2, loginBtn); // Below Add Task button
+
+        // Add Logout button to sidebar
+        Button logoutBtn = new Button("Logout");
+        logoutBtn.getStyleClass().add("sidebar-add-btn");
+        logoutBtn.setMaxWidth(Double.MAX_VALUE);
+        logoutBtn.setOnAction(e -> {
+            setCurrentUser("Guest");
+            userLabel.setText("User: Guest");
+            taskManager.setUser("Guest");
+            updateFilter(currentFilter);
+        });
+        sidebar.getChildren().add(3, logoutBtn); // Below Login/Register
 
         // Sidebar icons with PNG (robust resource loading)
         ImageView searchIcon = new ImageView(new Image(getClass().getResourceAsStream("/search.png")));
@@ -293,6 +336,63 @@ public class Main extends Application {
         dialog.setHeaderText("Select a category to filter:");
         dialog.setContentText("Category:");
         dialog.showAndWait().ifPresent(this::updateFilter);
+    }
+
+    // Login/Registration dialog
+    private boolean showLoginDialog(UserManager userManager) {
+        while (true) {
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("Login or Register");
+            dialog.setHeaderText("Please log in or register to continue");
+            ButtonType loginButtonType = new ButtonType("Login", ButtonBar.ButtonData.OK_DONE);
+            ButtonType registerButtonType = new ButtonType("Register", ButtonBar.ButtonData.OTHER);
+            dialog.getDialogPane().getButtonTypes().addAll(loginButtonType, registerButtonType, ButtonType.CANCEL);
+            TextField usernameField = new TextField();
+            usernameField.setPromptText("Username");
+            PasswordField passwordField = new PasswordField();
+            passwordField.setPromptText("Password");
+            VBox vbox = new VBox(10, usernameField, passwordField);
+            dialog.getDialogPane().setContent(vbox);
+            Node loginButton = dialog.getDialogPane().lookupButton(loginButtonType);
+            loginButton.addEventFilter(ActionEvent.ACTION, event -> {
+                String user = usernameField.getText().trim();
+                String pass = passwordField.getText();
+                if (!userManager.authenticate(user, pass)) {
+                    showAlert("Login Failed", "Invalid username or password.");
+                    event.consume();
+                }
+            });
+            dialog.setResultConverter(btn -> {
+                if (btn == registerButtonType) {
+                    String user = usernameField.getText().trim();
+                    String pass = passwordField.getText();
+                    if (user.isEmpty() || pass.isEmpty()) {
+                        showAlert("Registration Failed", "Username and password required.");
+                        return null;
+                    }
+                    if (!userManager.register(user, pass)) {
+                        showAlert("Registration Failed", "Username already exists.");
+                        return null;
+                    }
+                    showAlert("Registration Success", "You can now log in.");
+                    return null; // Stay in dialog for login
+                }
+                return btn;
+            });
+            Optional<ButtonType> result = dialog.showAndWait();
+            if (result.isPresent() && result.get() == loginButtonType) {
+                return true;
+            } else if (!result.isPresent() || result.get() == ButtonType.CANCEL) {
+                return false;
+            }
+            // If registration, loop again for login
+        }
+    }
+
+    // Helper to get the logged-in username (for demo, returns last entered username)
+    private String getLoggedInUsername() {
+        // You can store the username in a field after successful login for real use
+        return "User";
     }
 
     public static void main(String[] args) {
