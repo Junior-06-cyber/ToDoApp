@@ -1,6 +1,6 @@
 .root {
     -fx-font-family: "Segoe UI", sans-serif;
-    -fx-background-color: #f9f9f9;
+    -fx-background-color: linear-gradient(180deg, #f9f9f9 0%, #e0eafc 100%);
 }
 
 .text-field {
@@ -54,8 +54,44 @@
     -fx-background-color: #393e46;
 }
 
+.sidebar-add-btn {
+    -fx-background-color: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 0 12 0;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, #222831, 8, 0.3, 0, 2);
+    -fx-margin-bottom: 20px;
+    -fx-border-width: 0;
+}
+
+.sidebar-add-btn:hover {
+    -fx-background-color: linear-gradient(90deg, #ff512f 0%, #ff512f 100%);
+}
+
+.sidebar {
+    -fx-background-color: linear-gradient(180deg, #222831 0%, #393e46 100%);
+}
+
+.list-cell {
+    -fx-background-color: #fff;
+    -fx-padding: 12 20 12 20;
+    -fx-font-size: 16px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, #393e46, 4, 0.1, 0, 1);
+    -fx-border-color: #e0eafc;
+    -fx-border-width: 0 0 1 0;
+    -fx-margin-bottom: 8px;
+}
+
+.list-cell:filled:selected, .list-cell:filled:hover {
+    -fx-background-color: #e0eafc;
+}
+
 .floating-btn {
-    -fx-background-color: #00adb5;
+    -fx-background-color: linear-gradient(90deg, #00adb5 0%, #00ffb4 100%);
     -fx-text-fill: white;
     -fx-font-size: 28px;
     -fx-shape: "M0,50 a50,50 0 1,0 100,0 a50,50 0 1,0 -100,0";
@@ -68,11 +104,5 @@
 }
 
 .floating-btn:hover {
-    -fx-background-color: #007b8a;
-}
-
-.list-cell {
-    -fx-background-color: transparent;
-    -fx-padding: 8 16 8 16;
-    -fx-font-size: 15px;
+    -fx-background-color: linear-gradient(90deg, #007b8a 0%, #00adb5 100%);
 }

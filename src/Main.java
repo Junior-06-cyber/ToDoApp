@@ -49,6 +49,13 @@ public class Main extends Application {
         }
         sidebar.getChildren().addAll(inboxBtn, todayBtn, upcomingBtn, completedBtn);
 
+        // Add Task button in sidebar
+        Button addSidebarBtn = new Button("+ Add Task");
+        addSidebarBtn.getStyleClass().add("sidebar-add-btn");
+        addSidebarBtn.setMaxWidth(Double.MAX_VALUE);
+        addSidebarBtn.setOnAction(e -> showAddTaskDialog());
+        sidebar.getChildren().add(0, addSidebarBtn);
+
         // Sidebar icons with PNG (robust resource loading)
         ImageView searchIcon = new ImageView(new Image(getClass().getResourceAsStream("/search.png")));
         searchIcon.setFitWidth(20);
