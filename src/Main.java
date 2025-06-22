@@ -5,6 +5,8 @@ import javafx.collections.ObservableList;
 import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
@@ -47,14 +49,20 @@ public class Main extends Application {
         }
         sidebar.getChildren().addAll(inboxBtn, todayBtn, upcomingBtn, completedBtn);
 
-        // Sidebar icons
+        // Sidebar icons with PNG (robust resource loading)
+        ImageView searchIcon = new ImageView(new Image(getClass().getResourceAsStream("/search.png")));
+        searchIcon.setFitWidth(20);
+        searchIcon.setFitHeight(20);
         Button searchBtn = new Button();
-        searchBtn.setGraphic(new Label("\uD83D\uDD0D")); // Unicode magnifier
+        searchBtn.setGraphic(searchIcon);
         searchBtn.getStyleClass().add("sidebar-icon-btn");
         searchBtn.setOnAction(e -> showSearchDialog());
 
+        ImageView filterIcon = new ImageView(new Image(getClass().getResourceAsStream("/filter.png")));
+        filterIcon.setFitWidth(20);
+        filterIcon.setFitHeight(20);
         Button filterBtn = new Button();
-        filterBtn.setGraphic(new Label("\uD83D\uDD0E")); // Unicode filter icon
+        filterBtn.setGraphic(filterIcon);
         filterBtn.getStyleClass().add("sidebar-icon-btn");
         filterBtn.setOnAction(e -> showFilterDialog());
 
