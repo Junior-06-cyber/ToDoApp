@@ -42,23 +42,24 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("To-Doist FX");
+        primaryStage.setTitle("To-Do APP");
 
-        // Sidebar
+        // Sidebar (VBox) setup
         VBox sidebar = new VBox(20);
         sidebar.setPadding(new Insets(30, 10, 30, 10));
         sidebar.setStyle("-fx-background-color: #222831;");
         sidebar.setPrefWidth(140);
+        sidebar.setMinWidth(60);
 
-        Button inboxBtn = new Button("Inbox");
+        // Remove Inbox tab, only show Today, Upcoming, Completed
         Button todayBtn = new Button("Today");
         Button upcomingBtn = new Button("Upcoming");
         Button completedBtn = new Button("Completed");
-        for (Button b : new Button[]{inboxBtn, todayBtn, upcomingBtn, completedBtn}) {
+        for (Button b : new Button[]{todayBtn, upcomingBtn, completedBtn}) {
             b.setMaxWidth(Double.MAX_VALUE);
             b.getStyleClass().add("sidebar-btn");
         }
-        sidebar.getChildren().addAll(inboxBtn, todayBtn, upcomingBtn, completedBtn);
+        sidebar.getChildren().addAll(todayBtn, upcomingBtn, completedBtn);
 
         // Add Task button in sidebar
         Button addSidebarBtn = new Button("+ Add Task");
@@ -136,17 +137,21 @@ public class Main extends Application {
         StackPane.setAlignment(addBtn, Pos.BOTTOM_RIGHT);
         StackPane.setMargin(addBtn, new Insets(0, 30, 30, 0));
 
+        // Use SplitPane for resizable sidebar
+        SplitPane splitPane = new SplitPane();
+        splitPane.getItems().addAll(sidebar, mainPane);
+        splitPane.setDividerPositions(0.18); // Sidebar width ratio
+        splitPane.setStyle("-fx-background-color: transparent;");
+
         BorderPane root = new BorderPane();
-        root.setLeft(sidebar);
-        root.setCenter(mainPane);
+        root.setCenter(splitPane);
 
         Scene scene = new Scene(root, 800, 600);
-        scene.getStylesheets().add("resources/styles.css");
+        scene.getStylesheets().add("styles.css");
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        // Sidebar filter actions
-        inboxBtn.setOnAction(e -> updateFilter("Inbox"));
+        // Remove inboxBtn.setOnAction
         todayBtn.setOnAction(e -> updateFilter("Today"));
         upcomingBtn.setOnAction(e -> updateFilter("Upcoming"));
         completedBtn.setOnAction(e -> updateFilter("Completed"));
@@ -155,8 +160,6 @@ public class Main extends Application {
     private void updateFilter(String filter) {
         currentFilter = filter;
         observableTasks.setAll(taskManager.getTasks().stream().filter(task -> {
-            LocalDateTime now = LocalDateTime.now();
-            if (filter.equals("Inbox")) return !task.isCompleted() && !isToday(task) && !isUpcoming(task);
             if (filter.equals("Today")) return !task.isCompleted() && isToday(task);
             if (filter.equals("Upcoming")) return !task.isCompleted() && isUpcoming(task);
             if (filter.equals("Completed")) return task.isCompleted();
@@ -331,7 +334,7 @@ public class Main extends Application {
     }
 
     private void showFilterDialog() {
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("All", "All", "Inbox", "Today", "Upcoming", "Completed");
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("All", "All", "Today", "Upcoming", "Completed");
         dialog.setTitle("Filter Tasks");
         dialog.setHeaderText("Select a category to filter:");
         dialog.setContentText("Category:");

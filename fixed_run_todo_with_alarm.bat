@@ -11,6 +11,7 @@ javac --module-path %JAVAFX% --add-modules javafx.controls,javafx.media -d out s
 echo Copying resources...
 xcopy /Y /Q resources\* out\
 xcopy /Y /Q resources\*.png out\resources\
+xcopy /Y /Q resources\styles.css out\
 copy /Y alarm.wav out\
 
 echo Running application...
