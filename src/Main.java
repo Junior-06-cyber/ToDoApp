@@ -1,9 +1,14 @@
+import javafx.animation.FadeTransition;
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.geometry.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
-import javafx.geometry.*;
+import javafx.util.Duration;
 import javafx.scene.media.AudioClip;
 
 import java.io.File;
@@ -18,62 +23,132 @@ public class Main extends Application {
     private VBox taskList = new VBox(10);
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    private ListView<Task> listView;
+    private ObservableList<Task> observableTasks;
+    private String currentFilter = "Inbox";
+
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("My To-Do List");
+        primaryStage.setTitle("To-Doist FX");
 
-        TextField taskInput = new TextField();
-        taskInput.setPromptText("Enter a new task...");
+        // Sidebar
+        VBox sidebar = new VBox(20);
+        sidebar.setPadding(new Insets(30, 10, 30, 10));
+        sidebar.setStyle("-fx-background-color: #222831;");
+        sidebar.setPrefWidth(140);
 
-        DatePicker datePicker = new DatePicker();
-        datePicker.setPromptText("Reminder Date");
+        Button inboxBtn = new Button("Inbox");
+        Button todayBtn = new Button("Today");
+        Button upcomingBtn = new Button("Upcoming");
+        Button completedBtn = new Button("Completed");
+        for (Button b : new Button[]{inboxBtn, todayBtn, upcomingBtn, completedBtn}) {
+            b.setMaxWidth(Double.MAX_VALUE);
+            b.getStyleClass().add("sidebar-btn");
+        }
+        sidebar.getChildren().addAll(inboxBtn, todayBtn, upcomingBtn, completedBtn);
 
-        TextField timeInput = new TextField();
-        timeInput.setPromptText("HH:mm");
+        // Sidebar icons
+        Button searchBtn = new Button();
+        searchBtn.setGraphic(new Label("\uD83D\uDD0D")); // Unicode magnifier
+        searchBtn.getStyleClass().add("sidebar-icon-btn");
+        searchBtn.setOnAction(e -> showSearchDialog());
 
-        Button addButton = new Button("Add");
-        addButton.setOnAction(e -> {
-            String text = taskInput.getText().trim();
-            String timeText = timeInput.getText().trim();
-            LocalDateTime reminderTime = null;
+        Button filterBtn = new Button();
+        filterBtn.setGraphic(new Label("\uD83D\uDD0E")); // Unicode filter icon
+        filterBtn.getStyleClass().add("sidebar-icon-btn");
+        filterBtn.setOnAction(e -> showFilterDialog());
 
-            if (!text.isEmpty() && datePicker.getValue() != null && !timeText.isEmpty()) {
-                try {
-                    reminderTime = LocalDateTime.parse(datePicker.getValue() + " " + timeText, formatter);
-                } catch (Exception ex) {
-                    showAlert("Invalid Time Format", "Please use HH:mm format.");
-                    return;
-                }
-                Task task = new Task(text, false, reminderTime.format(formatter));
-                taskManager.addTask(task); // addTask already saves
-                displayTasks();
-                taskInput.clear();
-                timeInput.clear();
-                datePicker.setValue(null);
-            } else {
-                showAlert("Missing Input", "Please fill all fields.");
-            }
-        });
+        HBox iconBar = new HBox(10, searchBtn, filterBtn);
+        iconBar.setAlignment(Pos.CENTER);
+        sidebar.getChildren().add(0, iconBar);
 
-        HBox inputBox = new HBox(10, taskInput, datePicker, timeInput, addButton);
-        inputBox.setAlignment(Pos.CENTER);
+        // Main ListView
+        observableTasks = FXCollections.observableArrayList(taskManager.getTasks());
+        listView = new ListView<>(observableTasks);
+        listView.setCellFactory(lv -> new TaskCell());
+        listView.setStyle("-fx-background-color: #f9f9f9;");
+        updateFilter("Inbox");
 
-        taskList.setPadding(new Insets(10));
-        displayTasks();
+        // Floating Add Button
+        Button addBtn = new Button("+");
+        addBtn.getStyleClass().add("floating-btn");
+        addBtn.setOnAction(e -> showAddTaskDialog());
 
-        ScrollPane scrollPane = new ScrollPane(taskList);
-        scrollPane.setFitToWidth(true);
+        StackPane mainPane = new StackPane(listView, addBtn);
+        StackPane.setAlignment(addBtn, Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(addBtn, new Insets(0, 30, 30, 0));
 
-        VBox layout = new VBox(10, inputBox, scrollPane);
-        layout.setPadding(new Insets(20));
+        BorderPane root = new BorderPane();
+        root.setLeft(sidebar);
+        root.setCenter(mainPane);
 
-        Scene scene = new Scene(layout, 600, 600);
-        scene.getStylesheets().add("styles.css");
-
+        Scene scene = new Scene(root, 800, 600);
+        scene.getStylesheets().add("resources/styles.css");
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        startReminderChecker();
+        // Sidebar filter actions
+        inboxBtn.setOnAction(e -> updateFilter("Inbox"));
+        todayBtn.setOnAction(e -> updateFilter("Today"));
+        upcomingBtn.setOnAction(e -> updateFilter("Upcoming"));
+        completedBtn.setOnAction(e -> updateFilter("Completed"));
+    }
+
+    private void updateFilter(String filter) {
+        currentFilter = filter;
+        observableTasks.setAll(taskManager.getTasks().stream().filter(task -> {
+            LocalDateTime now = LocalDateTime.now();
+            if (filter.equals("Inbox")) return !task.isCompleted() && !isToday(task) && !isUpcoming(task);
+            if (filter.equals("Today")) return !task.isCompleted() && isToday(task);
+            if (filter.equals("Upcoming")) return !task.isCompleted() && isUpcoming(task);
+            if (filter.equals("Completed")) return task.isCompleted();
+            return true;
+        }).toList());
+    }
+
+    private boolean isToday(Task task) {
+        try {
+            LocalDateTime due = LocalDateTime.parse(task.getReminderTime(), formatter);
+            return due.toLocalDate().equals(LocalDateTime.now().toLocalDate());
+        } catch (Exception e) { return false; }
+    }
+    private boolean isUpcoming(Task task) {
+        try {
+            LocalDateTime due = LocalDateTime.parse(task.getReminderTime(), formatter);
+            return due.isAfter(LocalDateTime.now()) && !isToday(task);
+        } catch (Exception e) { return false; }
+    }
+
+    private void showAddTaskDialog() {
+        Dialog<Task> dialog = new Dialog<>();
+        dialog.setTitle("Add Task");
+        dialog.setHeaderText(null);
+        TextField titleField = new TextField();
+        titleField.setPromptText("Task title");
+        DatePicker datePicker = new DatePicker();
+        datePicker.setPromptText("Due date");
+        TextField timeField = new TextField();
+        timeField.setPromptText("HH:mm");
+        VBox vbox = new VBox(10, titleField, datePicker, timeField);
+        dialog.getDialogPane().setContent(vbox);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.setResultConverter(btn -> {
+            if (btn == ButtonType.OK) {
+                String title = titleField.getText().trim();
+                String time = timeField.getText().trim();
+                if (!title.isEmpty() && datePicker.getValue() != null && !time.isEmpty()) {
+                    try {
+                        LocalDateTime dt = LocalDateTime.parse(datePicker.getValue() + " " + time, formatter);
+                        return new Task(title, false, dt.format(formatter));
+                    } catch (Exception ignored) {}
+                }
+            }
+            return null;
+        });
+        dialog.showAndWait().ifPresent(task -> {
+            taskManager.addTask(task);
+            updateFilter(currentFilter);
+        });
     }
 
     private void startReminderChecker() {
@@ -153,6 +228,56 @@ public class Main extends Application {
             row.getChildren().addAll(checkBox, label, deleteButton);
             taskList.getChildren().add(row);
         }
+    }
+
+    // Custom ListCell for Task
+    private class TaskCell extends ListCell<Task> {
+        @Override
+        protected void updateItem(Task task, boolean empty) {
+            super.updateItem(task, empty);
+            if (empty || task == null) {
+                setText(null);
+                setGraphic(null);
+            } else {
+                HBox row = new HBox(10);
+                row.setAlignment(Pos.CENTER_LEFT);
+                CheckBox checkBox = new CheckBox();
+                checkBox.setSelected(task.isCompleted());
+                checkBox.setOnAction(e -> {
+                    task.setCompleted(checkBox.isSelected());
+                    taskManager.saveTasks();
+                    updateFilter(currentFilter);
+                });
+                Label label = new Label(task.getText());
+                if (task.isCompleted()) {
+                    label.setStyle("-fx-strikethrough: true; -fx-opacity: 0.5;");
+                }
+                Label dueLabel = new Label(task.getReminderTime());
+                dueLabel.setStyle("-fx-text-fill: #888;");
+                row.getChildren().addAll(checkBox, label, dueLabel);
+                setGraphic(row);
+            }
+        }
+    }
+
+    private void showSearchDialog() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Search Task");
+        dialog.setHeaderText("Enter task name to search:");
+        dialog.setContentText("Task:");
+        dialog.showAndWait().ifPresent(query -> {
+            observableTasks.setAll(taskManager.getTasks().stream()
+                .filter(task -> task.getText().toLowerCase().contains(query.toLowerCase()))
+                .toList());
+        });
+    }
+
+    private void showFilterDialog() {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("All", "All", "Inbox", "Today", "Upcoming", "Completed");
+        dialog.setTitle("Filter Tasks");
+        dialog.setHeaderText("Select a category to filter:");
+        dialog.setContentText("Category:");
+        dialog.showAndWait().ifPresent(this::updateFilter);
     }
 
     public static void main(String[] args) {
