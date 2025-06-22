@@ -1,0 +1,28 @@
+
+.root {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-background-color: #f9f9f9;
+}
+
+.text-field {
+    -fx-pref-width: 200px;
+    -fx-font-size: 14px;
+}
+
+.button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.button:hover {
+    -fx-background-color: #45a049;
+}
+
+.label {
+    -fx-font-size: 14px;
+}
+
+.scroll-pane {
+    -fx-background-color: transparent;
+}
